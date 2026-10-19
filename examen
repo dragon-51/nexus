@@ -1,0 +1,694 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+
+namespace NexusSimulation
+{
+    public delegate void InterferenciaIrisHandler(string mensaje, double entropia);
+
+  
+    public abstract class Personaje
+    {
+        public string Nombre { get; protected set; }
+        public int Salud { get; set; }
+        public int SaludMaxima { get; protected set; }
+
+        public Personaje(string nombre, int salud)
+        {
+            Nombre = nombre;
+            Salud = salud;
+            SaludMaxima = salud;
+        }
+
+        // Ataques del enemigo inspirados en el sistema de Pokémon
+        public abstract int EjecutarAtaqueEnemigo();
+    }
+
+    public class Cadete : Personaje
+    {
+        public int Edad { get; private set; }
+       private int_energia;
+       private int_estabilidad;
+       plublic int_energia
+       {
+       get=>_energia;
+       get=>_energia=Math.Clamp(value,0,100);
+       }
+       public int estabilidad 
+       {
+       get=>_estabilidad
+       get=>_estabilidad=Math.Clamp(value,0,100);
+        public int Experiencia { get; set; }
+        public List<string> Inventario { get; private set; }
+
+        public int PosX { get; set; } = 1;
+        public int PosY { get; set; } = 1;
+
+        public Cadete(string nombre, int edad, int energia, int estabilidad) : base(nombre, 100)
+        {
+            Edad = Math.Clamp(edad, 16, 100);
+            Energia = Math.Clamp(energia, 0, 100);
+            Estabilidad = Math.Clamp(estabilidad, 0, 100);
+            Experiencia = 0;
+            Inventario = new List<string> { "Célula de energía", "Escudo" };
+        }
+
+        public override int EjecutarAtaqueEnemigo() => 0; 
+
+        public void MostrarInventario()
+        {
+            Console.WriteLine("\n--- INVENTARIO DE SUPERVIVENCIA ---");
+            if (Inventario.Count == 0)
+            {
+                Console.WriteLine(" El inventario está completamente vacío.");
+                return;
+            }
+            for (int i = 0; i < Inventario.Count; i++)
+            {
+                Console.WriteLine($" {i + 1}. {Inventario[i]}");
+            }
+        }
+    }
+
+    public class centinela : Personaje
+    {
+        private Random _rand = new Random();
+        public centinela() : base("Unidad Centinela Automatizada", 70) { }
+
+        public override int EjecutarAtaqueEnemigo()
+        {
+            int ataque = _rand.Next(1, 3);
+            if (ataque == 1)
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"\n  ¡{Nombre} usó DESCARGA ELÉCTRICA!");
+                Console.ResetColor();
+                return _rand.Next(10, 18); // Daño
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"\n  ¡{Nombre} usó PULSO HOLOGRÁFICO!");
+                Console.ResetColor();
+                return _rand.Next(8, 14);
+            }
+        }
+    }
+
+    public class Enemigo : Personaje
+    {
+        private Random _rand = new Random();
+        public Enemigo() : base("Infiltrado Kreeg de la Anomalía", 90) { }
+
+        public override int EjecutarAtaqueEnemigo()
+        {
+            int ataque = _rand.Next(1, 3);
+            if (ataque == 1)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n 👾 ¡{Nombre} usó DISPARO DE PLASMA!");
+                Console.ResetColor();
+                return _rand.Next(15, 25); // Daño alto
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"\n 👾 ¡{Nombre} usó DRENAR RECURSOS VITALES!");
+                Console.ResetColor();
+                return _rand.Next(12, 18);
+            }
+        }
+    }
+
+
+    public class MapaRealidad
+    {
+        public string Nombre { get; private set; }
+        private char[,] _matriz;
+
+        public MapaRealidad(string nombre, char[,] matriz)
+        {
+            Nombre = nombre;
+            _matriz = matriz;
+        }
+
+        public int ObtenerFilas() => _matriz.GetLength(0);
+        public int ObtenerColumnas() => _matriz.GetLength(1);
+        public char ObtenerCelda(int x, int y) => _matriz[x, y];
+        public void ModificarCelda(int x, int y, char valor) => _matriz[x, y] = valor;
+
+        public void Renderizar(int jugadorX, int jugadorY)
+        {
+            Console.WriteLine($"\n========================================");
+            Console.WriteLine($"   SISTEMA DE EXPLORACIÓN DE LA REALIDAD: {Nombre.ToUpper()}   ");
+            Console.WriteLine("========================================");
+
+            for (int i = 0; i < _matriz.GetLength(0); i++)
+            {
+                Console.Write("    ");
+                for (int j = 0; j < _matriz.GetLength(1); j++)
+                {
+                    if (i == jugadorX && j == jugadorY)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write("C ");
+                        continue;
+                    }
+
+                    char celda = _matriz[i, j];
+                    if (celda == '█') Console.ForegroundColor = ConsoleColor.DarkGray;
+                    else if (celda == 'N') Console.ForegroundColor = ConsoleColor.Cyan;
+                    else if (celda == '~') Console.ForegroundColor = ConsoleColor.Magenta;
+                    else if (celda == 'R') Console.ForegroundColor = ConsoleColor.Yellow;
+                    else if (celda == 'O') Console.ForegroundColor = ConsoleColor.Red;
+                    else if (celda == '*') Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    else Console.ForegroundColor = ConsoleColor.Gray;
+
+                    Console.Write(celda + " ");
+                }
+                Console.WriteLine();
+            }
+            Console.ResetColor();
+            MostrarLeyenda();
+            Console.WriteLine("========================================");
+        }
+
+        private void MostrarLeyenda()
+        {
+            Console.WriteLine("\n--- GLOSARIO DE LA MATRIZ ---");
+            Console.WriteLine(" C -> Posición Actual del Cadete");
+            Console.WriteLine(" █ -> Obstáculo Dimensional No Transitable");
+            Console.WriteLine(" . -> Sector del Espacio Abierto Transitable");
+            Console.WriteLine(" N -> Núcleo Energético de la Anomalía");
+        }
+    }
+
+ 
+    public class SistemaNexus
+    {
+        private Cadete _cadete;
+        private MapaRealidad _mapa;
+        private bool _sesionActiva = true;
+        private bool _misionCompletada = false;
+        private Random _random = new Random();
+
+        public static event InterferenciaIrisHandler OnAnomaliaIris;
+
+        public SistemaNexus()
+        {
+            OnAnomaliaIris += MostrarAlertaIris;
+        }
+
+        public void Ejecutar()
+        {
+            Console.WriteLine("========================================");
+            Console.WriteLine("    BIENVENIDO AL SISTEMA NEXUS v2.0   ");
+            Console.WriteLine("========================================");
+
+            string nombre = LeerCadenaObligatoria("Ingrese Identificación del Cadete: ");
+            int edad = LeerEnteroEnRango("Ingrese Edad del Cadete: ", 16, 100);
+
+            _mapa = SeleccionarMatrizRealidad();
+
+            Console.Clear();
+            int energia = LeerEnteroEnRango("Ingrese Energía Inicial (0-100): ", 0, 100);
+            int estabilidad = LeerEnteroEnRango("Ingrese Estabilidad Inicial (0-100): ", 0, 100);
+
+            _cadete = new Cadete(nombre, edad, energia, estabilidad);
+
+            if (_cadete.Energia < 50 || _cadete.Estabilidad < 20)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\n[ACCESO RECHAZADO]: Constantes biométricas deficientes.");
+                Console.ResetColor();
+                return;
+            }
+
+            ProcesarConexionIris();
+            BucleJuegoPrincipal();
+        }
+
+        private void ProcesarConexionIris()
+        {
+            string servidor = "192.168.40.11";
+            int puerto = 5000;
+            try
+            {
+                Console.WriteLine($"[RED]: Conectando al servidor central NEXUS en {servidor}:{puerto}...");
+                using (TcpClient cliente = new TcpClient(servidor, puerto))
+                using (NetworkStream stream = cliente.GetStream())
+                {
+                    string mensajeInicio = $"Cadete {_cadete.Nombre} ha iniciado sesión en Realidad: {_mapa.Nombre}";
+                    byte[] datosEnvio = Encoding.UTF8.GetBytes(mensajeInicio);
+                    stream.Write(datosEnvio, 0, datosEnvio.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[ADVERTENCIA DE RED]: Servidor externo inalcanzable ({ex.Message}).");
+                Console.WriteLine("[RED]: El modo simulación local continuará de manera autónoma.");
+                Console.ResetColor();
+            }
+        }
+
+        private void BucleJuegoPrincipal()
+        {
+            while (_sesionActiva)
+            {
+                double entropia = (100 - _cadete.Estabilidad) * (100 - _cadete.Energia);
+
+
+if (entropia > 5600 || _cadete.Salud <= 0)
+                {
+                    OnAnomaliaIris?.Invoke("CRÍTICO: Colapso del nexo simbiótico o muerte biológica.", entropia);
+                    Console.WriteLine("\n[NEXUS]: Desconexión forzada de emergencia ejecutada.");
+                    break;
+                }
+                ImprimirPanelEstadisticas(entropia);
+                int opcion = LeerEnteroEnRango("Seleccione Operación (1-5): ", 1, 5);
+                ProcesarAccionMenu(opcion);
+                if (_sesionActiva && opcion != 1)
+                {
+                    Console.WriteLine("\nPresione cualquier tecla para continuar...");
+                    Console.ReadKey(true);
+                    Console.Clear();
+                }
+            }
+        }
+        private void ImprimirPanelEstadisticas(double entropia)
+        {
+            Console.Clear();
+            Console.WriteLine("========================================");
+            Console.WriteLine("         NEXUS TRAINING SYSTEM          ");
+            Console.WriteLine("========================================");
+            Console.WriteLine($"CADETE: {_cadete.Nombre.ToUpper()} | INTEGRIDAD BIOLÓGICA: {_cadete.Salud}%");
+            Console.WriteLine($"REALIDAD: {_mapa.Nombre.ToUpper()} | XP: {_cadete.Experiencia} pts");
+            Console.WriteLine($"ENERGÍA: {_cadete.Energia}% | ESTABILIDAD: {_cadete.Estabilidad}% | ENTROPÍA: {entropia}");
+            if (_misionCompletada) Console.WriteLine("OBJETIVO: [ ANOMALÍA EXTRAÍDA - DIRÍJASE A LA SALIDA]");
+            else Console.WriteLine("OBJETIVO: [ LOCALICE EL NÚCLEO ENERGÍTICO 'N' EN EL MAPA]");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine("1. Desplazamiento Terrestre (Explorar Zonas de Forma Continua)");
+            Console.WriteLine("2. Gestionar Inventario (Usar / Consultar)");
+            Console.WriteLine("3. Escanear Flujos de Red");
+            Console.WriteLine("4. Sobrecargar Células de Poder");
+            Console.WriteLine("5. Intentar Extracción Segura (Salir)");
+            Console.WriteLine("========================================");
+            DibujarBarra("Energía", _cadete.Energia, ConsoleColor.Blue);
+            DibujarBarra("Estabilidad", _cadete.Estabilidad, ConsoleColor.Green);
+        }
+        private void ProcesarAccionMenu(int opcion)
+        {
+            switch (opcion)
+            {
+                case 1:
+                    MenuMovimiento();
+                    break;
+                case 2:
+                    MenuInventario();
+                    break;
+                case 3:
+                    SimularCarga("Pingeando servidores centrales de IRIS");
+                    Console.WriteLine("\n[DIAGNÓSTICO]: Canales cuánticos operando con normalidad.");
+                    break;
+                case 4:
+                    SimularCarga("Canalizando sobrecarga termo-nuclear");
+                    _cadete.Energia += 35;
+                    if (_cadete.Energia > 100) _cadete.Energia = 100;
+                    Console.WriteLine($"\n[SISTEMA]: Energía reestablecida con éxito.");
+                    break;
+                case 5:
+                    if (_misionCompletada)
+                    {
+                        SimularCarga("Iniciando secuencia de extracción");
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("\n MISIÓN COMPLETADA: 'La anomalía perdida'");
+                        Console.WriteLine(" +100 XP Adquirida.");
+                        Console.WriteLine(" +1 Módulo desconocido añadido a la base de datos central.");
+                        _cadete.Experiencia += 100;
+                        _sesionActiva = false;
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("\n[ADVERTENCIA]: Extracción abortada. Encuentre el Núcleo 'N' antes de salir.");
+                        Console.ResetColor();
+                    }
+                    break;
+            }
+        }
+        private void MenuMovimiento()
+        {
+            bool explorando = true;
+            while (explorando)
+            {
+                double entropiaMoviendose = (100 - _cadete.Estabilidad) * (100 - _cadete.Energia);
+                if (entropiaMoviendose > 5600 || _cadete.Salud <= 0)
+                {
+                    break;
+                }
+                Console.Clear();
+                Console.WriteLine($"[SISTEMA VITAL]: SALUD: {_cadete.Salud}% | ENERGÍA: {_cadete.Energia}% | ESTABILIDAD: {_cadete.Estabilidad}%");
+                _mapa.Renderizar(_cadete.PosX, _cadete.PosY);
+                Console.WriteLine("CONTROLES: Presione [W], [A], [S], [D] para caminar | Presione [Q] para salir al Menú");
+                ConsoleKeyInfo teclaInfo = Console.ReadKey(true);
+                char dir = char.ToUpper(teclaInfo.KeyChar);
+                if (dir == 'Q')
+                {
+                    explorando = false;
+                    Console.WriteLine("\n[SISTEMA]: Regresando al panel de control central...");
+                    Thread.Sleep(400);
+                    continue;
+                }
+                int nuevoX = _cadete.PosX;
+                int nuevoY = _cadete.PosY;
+                if (dir == 'W') nuevoX--;
+                else if (dir == 'S') nuevoX++;
+                else if (dir == 'A') nuevoY--;
+                else if (dir == 'D') nuevoY++;
+                else
+                {
+                    continue;
+                }
+                if (nuevoX < 0 || nuevoX >= _mapa.ObtenerFilas() || nuevoY < 0 || nuevoY >= _mapa.ObtenerColumnas())
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n[ ALERTA BARRERA]: Error de coordenadas. Bloqueado por cortafuegos.");
+                    Console.ResetColor();
+                    Thread.Sleep(600);
+                    continue;
+                }
+                if (_mapa.ObtenerCelda(nuevoX, nuevoY) == '█')
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("\n[ COLISIÓN]: Movimiento cancelado. Obstáculo intransitable detectado.");
+                    Console.ResetColor();
+                    Thread.Sleep(600);
+                    continue;
+                }
+                _cadete.PosX = nuevoX;
+                _cadete.PosY = nuevoY;
+                GatillarEventosCasilla(_mapa.ObtenerCelda(nuevoX, nuevoY));
+                if (_misionCompletada && _mapa.ObtenerCelda(nuevoX, nuevoY) == '.')
+                {
+                    Console.WriteLine("\n¡Presione cualquier tecla para continuar moviéndose hacia el punto de extracción!");
+                    Console.ReadKey(true);
+                }
+            }
+            Console.Clear();
+        }
+ 
+        private void IniciarFaseCombatePokemon(Personaje enemigo)
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine("=================================================");
+            Console.WriteLine($"  ¡UN {enemigo.Nombre.ToUpper()} CORRUPTO APARECIÓ!  ");
+            Console.WriteLine("=================================================");
+            Console.ResetColor();
+            Thread.Sleep(1200);
+            bool enCombate = true;
+            while (enCombate && _cadete.Salud > 0 && enemigo.Salud > 0)
+            {
+                Console.Clear();
+                Console.WriteLine("-------------------------------------------------");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"  ENMIGO: {enemigo.Nombre} [{enemigo.Salud}/{enemigo.SaludMaxima} HP]");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"  CADETE: {_cadete.Nombre} [{_cadete.Salud}/100 HP] | ENERGÍA: {_cadete.Energia}%");
+                Console.ResetColor();
+                Console.WriteLine("-------------------------------------------------");
+                Console.WriteLine(" ¿Qué debería hacer el Cadete?");
+                Console.WriteLine(" 1.  ATACAR (Rifle Cuántico)      2.  USAR OBJETO (Inventario)");
+                Console.WriteLine(" 3.  ESCAPAR                     ");
+                Console.WriteLine("-------------------------------------------------");
+                int accion = LeerEnteroEnRango(" Selecciona una opción (1-3): ", 1, 3);
+                // --- 1. TURNO DEL JUGADOR ---
+                bool turnoEnemigoActivo = true;
+                if (accion == 1) // Atacar
+                {
+                    int dañoJugador = _random.Next(15, 30);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"\n  ¡{_cadete.Nombre} usó RIFLE CUÁNTICO!");
+                    Console.WriteLine($" ¡Le infligió {dañoJugador} de daño al objetivo!");
+                    Console.ResetColor();
+                    enemigo.Salud -= dañoJugador;
+                    _cadete.Energia -= 5; 
+                }
+                else if (accion == 2) 
+                {
+                    if (_cadete.Inventario.Count == 0)
+                    {
+                        Console.WriteLine("\n ¡Tu mochila está vacía! Pierdes el turno por abrirla en pleno combate.");
+                    }
+                    else
+                    {
+                        _cadete.MostrarInventario();
+                        int itemIndice = LeerEnteroEnRango(" Selecciona el número del objeto a usar: ", 1, _cadete.Inventario.Count) - 1;
+                        string item = _cadete.Inventario[itemIndice];
+                        if (item.Contains("energía") || item.Contains("Células"))
+                        {
+                            _cadete.Energia = Math.Min(_cadete.Energia + 30, 100);
+                            Console.WriteLine($"\n  Inyectaste {item}. Energía restaurada al {_cadete.Energia}%.");
+                        }
+                        else
+                        {
+                            _cadete.Salud = Math.Min(_cadete.Salud + 25, 100);
+                            Console.WriteLine($"\n  Activaste {item}. Salud curada a {_cadete.Salud} HP.");
+                        }
+                        _cadete.Inventario.RemoveAt(itemIndice);
+                    }
+                }
+                else // Intentar escapar
+                {
+                    if (_random.Next(1, 100) <= 50) 
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("\n  ¡Lograste escapar del combate a salvo!");
+                        Console.ResetColor();
+                        turnoEnemigoActivo = false;
+                        enCombate = false;
+                    }
+                    else
+                    {
+                        Console.WriteLine("\n  ¡No pudiste escapar! El enemigo bloqueó tu retirada.");
+                    }
+                }
+                Thread.Sleep(1500);
+           
+                if (enemigo.Salud <= 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"\n  ¡El {enemigo.Nombre} ha sido debilitado!");
+                    Console.WriteLine(" ¡Ganaste +50 puntos de XP y recolectaste una [Célula de energía]!");
+                    _cadete.Experiencia += 50;
+                    _cadete.Inventario.Add("Célula de energía");
+                    Console.ResetColor();
+                    enCombate = false;
+                    turnoEnemigoActivo = false;
+                    _mapa.ModificarCelda(_cadete.PosX, _cadete.PosY, '.'); 
+                    Thread.Sleep(2000);
+                }
+
+                if (turnoEnemigoActivo && _cadete.Salud > 0)
+                {
+                    Console.WriteLine("\n -------------------------------------------------");
+                    Console.WriteLine($"  Turno de {enemigo.Nombre}...");
+                    Thread.Sleep(1000);
+ 
+                    int dañoEnemigo = enemigo.EjecutarAtaqueEnemigo();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($" ¡{_cadete.Nombre} recibió {dañoEnemigo} pts de daño!");
+                    Console.ResetColor();
+                    _cadete.Salud -= dañoEnemigo;
+                    _cadete.Estabilidad -= 8; 
+                    Thread.Sleep(2000);
+                }
+            }
+
+            if (_cadete.Salud <= 0 || _cadete.Salud <= 0)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("\n  Has caído en combate. Tus signos vitales se han extinguido...");
+                Console.ResetColor();
+                Thread.Sleep(2000);
+            }
+        }
+        private void GatillarEventosCasilla(char elemento)
+        {
+            if (elemento == 'N')
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("\n ANOMALÍA DETECTADA: ¡Ha localizado el núcleo energético perdido!");
+                Console.WriteLine(" El objetivo principal ha sido asegurado. Secuencia de extracción autorizada.");
+                _misionCompletada = true;
+                _mapa.ModificarCelda(_cadete.PosX, _cadete.PosY, '.');
+                Console.ResetColor();
+                return;
+            }
+            int probabilidad = _random.Next(1, 100);
+            if (probabilidad <= 25) 
+            {
+                Personaje rival;
+                if (_random.Next(1, 3) == 1) rival = new centinela();
+                else rival = new Enemigo();
+
+                IniciarFaseCombatePokemon(rival);
+            }
+            else if (probabilidad > 25 && probabilidad <= 40)
+            {
+                string[] objetosPosibles = { "Células de energía", "Escudos", "Módulos de ataque" };
+                string itemEncontrado = objetosPosibles[_random.Next(0, objetosPosibles.Length)];
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"\n OBJETO ENCONTRADO: Recogiste [{itemEncontrado}] del suelo.");
+                _cadete.Inventario.Add(itemEncontrado);
+                Console.ResetColor();
+                Thread.Sleep(1000);
+            }
+            else if (probabilidad > 40 && probabilidad <= 50)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\n PÉRDIDA DE ENERGÍA: Radiación drena un -15% de tus sistemas.");
+                _cadete.Energia -= 15;
+                Console.ResetColor();
+                Thread.Sleep(1000);
+            }
+        }
+        private void MenuInventario()
+        {
+            Console.Clear();
+            _cadete.MostrarInventario();
+            if (_cadete.Inventario.Count == 0) return;
+            Console.WriteLine("\n OPERACIONES: 1. Utilizar un Objeto | 2. Eliminar un Objeto | 3. Salir");
+            int operacion = LeerEnteroEnRango("Seleccione opción: ", 1, 3);
+            if (operacion == 3) return;
+            int indice = LeerEnteroEnRango("Seleccione el NÚMERO del objeto con el que operar: ", 1, _cadete.Inventario.Count) - 1;
+            string objeto = _cadete.Inventario[indice];
+            if (operacion == 1)
+            {
+                SimularCarga($"Inyectando compuesto {objeto}");
+                if (objeto.Contains("energía") || objeto.Contains("Células"))
+                {
+                    Console.WriteLine($"\n Usando célula. Energía: {_cadete.Energia} ➡ {Math.Min(_cadete.Energia + 25, 100)}");
+                    _cadete.Energia += 25;
+                }
+                else if (objeto.Contains("Escudos") || objeto.Contains("Escudo"))
+                {
+                    Console.WriteLine($"\n Blindaje restaurado. Estabilidad: {_cadete.Estabilidad} ➡ {Math.Min(_cadete.Estabilidad + 30, 100)}");
+                    _cadete.Estabilidad += 30;
+                }
+                else
+                {
+                    Console.WriteLine($"\n Has utilizado el modulo [{objeto}] aumentando temporalmente tus habilidades.");
+                }
+                _cadete.Inventario.RemoveAt(indice);
+            }
+            else if (operacion == 2)
+            {
+                _cadete.Inventario.RemoveAt(indice);
+                Console.WriteLine($"\n Objeto [{objeto}] destruido y eliminado permanentemente del inventario.");
+            }
+        }
+        private MapaRealidad SeleccionarMatrizRealidad()
+        {
+            Console.WriteLine("\n--- SELECCIÓN DE ENTORNO OPERATIVO ---");
+            Console.WriteLine("1. Realidad Alpha (Nexo Urbano)\n2. Realidad Beta (Yermo Cuántico)\n3. Realidad Gamma (Vortex Espacial)");
+            int seleccion = LeerEnteroEnRango("Seleccione ID de Realidad para inmersión: ", 1, 3);
+            if (seleccion == 1)
+                return new MapaRealidad("Alpha", new char[,] {
+{ '█', '█', '█', '█', '█', '█', '█', '█' },
+{ '█', ' ', ' ', ' ', '█', ' ', 'N', '█' },
+{ '█', ' ', '█', ' ', ' ', ' ', ' ', '█' },
+{ '█', '█', '█', '█', '█', '█', '█', '█' }
+});
+            if (seleccion == 2)
+                return new MapaRealidad("Beta", new char[,] {
+{ '█', '█', '█', '█', '█', '█', '█', '█' },
+{ '█', '.', '.', '~', '.', '.', 'N', '█' },
+{ '█', 'R', '.', '.', '.', '.', '.', '█' },
+{ '█', '█', '█', '█', '█', '█', '█', '█' }
+});
+            return new MapaRealidad("Gamma", new char[,] {
+{ '█', '█', '█', '█', '█', '█', '█', '█' },
+{ '█', ' ', ' ', ' ', 'O', ' ', 'N', '█' },
+{ '█', ' ', 'O', ' ', ' ', ' ', ' ', '█' },
+{ '█', '█', '█', '█', '█', '█', '█', '█' }
+});
+        }
+        private void SimularCarga(string mensaje)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\n {mensaje.ToUpper()}...");
+            int totalBloques = 15;
+            for (int i = 0; i <= totalBloques; i++)
+            {
+                Console.Write("\r Loading: [");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write(new string('█', i) + new string('░', totalBloques - i));
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write($"] {(i * 100) / totalBloques}%");
+                Thread.Sleep(40);
+            }
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+        private void DibujarBarra(string nombre, int porcentaje, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            int totalBloques = 25;
+            int bloquesCompletados = Math.Clamp((porcentaje * totalBloques) / 100, 0, totalBloques);
+            string barra = new string('█', bloquesCompletados) + new string('░', totalBloques - bloquesCompletados);
+            Console.WriteLine($"{nombre}: [{barra}] {Math.Clamp(porcentaje, 0, 100)}%");
+            Console.ResetColor();
+        }
+        private static void MostrarAlertaIris(string mensaje, double entropia)
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("========================================");
+            Console.WriteLine(" ALERTA DE INTERFERENCIA CRÍTICA IRIS ");
+            Console.WriteLine("========================================");
+            Console.WriteLine($"MOTIVO: {mensaje}");
+            Console.WriteLine($"NIVEL DE ENTROPÍA: {entropia} / Límite: 5600");
+            Console.WriteLine("========================================");
+            Console.ResetColor();
+        }
+        private string LeerCadenaObligatoria(string mensaje)
+        {
+            while (true)
+            {
+                Console.Write(mensaje);
+                string entrada = Console.ReadLine()?.Trim();
+                if (!string.IsNullOrEmpty(entrada)) return entrada;
+                Console.WriteLine(" [ERROR]: Entrada vacía no permitida.");
+            }
+        }
+        private int LeerEnteroEnRango(string mensaje, int min, int max)
+        {
+            while (true)
+            {
+                Console.Write(mensaje);
+                if (int.TryParse(Console.ReadLine(), out int valor))
+                {
+                    if (valor >= min && valor <= max) return valor;
+                    Console.WriteLine($" [VALOR FUERA DE RANGO]: Elija un valor entre {min} y {max}.");
+                }
+                else { Console.WriteLine(" [ERROR DE FORMATO]: Ingrese un valor numérico entero."); }
+            }
+        }
+    }
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            SistemaNexus juego = new SistemaNexus();
+            juego.Ejecutar();
+            Console.WriteLine("\nSimulación finalizada. Presione cualquier tecla para cerrar la ventana...");
+            Console.ReadKey(true);
+        }
+    }
+}

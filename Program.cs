@@ -1,9 +1,12 @@
-﻿using System;
+﻿using ConsoleApp9;
+using System.Windows.Forms;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+
 
 namespace NexusSimulation
 {
@@ -195,6 +198,10 @@ namespace NexusSimulation
 
         public void Ejecutar()
         {
+            Application.EnableVisualStyles();
+            Application.Run(new Form1());
+
+
             Console.WriteLine("========================================");
             Console.WriteLine("    BIENVENIDO AL SISTEMA NEXUS v2.0   ");
             Console.WriteLine("========================================");

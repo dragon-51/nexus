@@ -10,6 +10,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="sprites\enemigos\oga-swm-objectsandenemies-sheet-alpha.png" />
+    <None Remove="sprites\fondos\oga-swm-bg-blobby.png" />
+    <None Remove="sprites\personaje\oga-swm-mainchar-sheet-alpha.png" />
+    <None Remove="sprites\plataformas\oga-swm-tiles-alpha.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="sprites\enemigos\oga-swm-objectsandenemies-sheet-alpha.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="sprites\fondos\oga-swm-bg-blobby.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="sprites\personaje\oga-swm-mainchar-sheet-alpha.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="sprites\plataformas\oga-swm-tiles-alpha.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
   </ItemGroup>
 
@@ -27,5 +50,19 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+
+	<ItemGroup>
+		<None Update="Sounds\*.wav" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="modelos\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="enemigo2d.cs" />
+	  <None Include="partidasSQL.cs" />
+	</ItemGroup>
+
 
 </Project>

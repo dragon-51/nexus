@@ -199,7 +199,7 @@ namespace NexusSimulation
         public void Ejecutar()
         {
             Application.EnableVisualStyles();
-            Application.Run(new Form1());
+            Application.Run(new menu_principal());
 
 
             Console.WriteLine("========================================");

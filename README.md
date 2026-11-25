@@ -274,6 +274,23 @@ También es posible abrir ConsoleApp9.slnx desde Visual Studio y ejecutar el pro
 - Ampliación del sistema de combate.
 - Implementación de pruebas automatizadas.
 
+## Documentación del proyecto
+
+La documentación técnica y de diseño de NEXUS se encuentra organizada en la carpeta `docs/`.
+
+| Documento | Descripción |
+|---|---|
+| [Diseño del juego](docs/diseno-del-juego.md) | Visión, mecánicas, ciclo del juego y wireframes. |
+| [Arquitectura actual](docs/arquitectura-actual.md) | Estructura y componentes implementados. |
+| [Arquitectura propuesta](docs/arquitectura-propuesta.md) | Separación de responsabilidades y mejoras futuras. |
+| [Modelo de datos propuesto](docs/modelo-de-datos-propuesto.md) | Entidades, relaciones y persistencia SQL. |
+| [Análisis técnico](docs/analisis-tecnico.md) | Alternativas tecnológicas, justificación y verificación de información obtenida mediante IA. |
+| [Evidencias del proyecto](docs/evidencias/) | Capturas de funcionamiento, bocetos y diagramas. |
+| [Script SQL](sql/nexus.sql) | Creación de la base de datos NEXUS y sus tablas. |
+
+La documentación diferencia las funcionalidades implementadas de las mejoras propuestas para futuras versiones.
+
+
 ## Autor
 
 **Andrés Martínez Chura**

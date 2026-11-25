@@ -23,93 +23,181 @@ namespace ConsoleApp9
             conexion.Open();
         }
 
+
+
+
         public static void GuardarPartida(
             Cadete cadete,
             string mundo,
             int semilla,
             float x,
-            float y)
+            float y,
+            List<Enemigo2D>? enemigos = null,
+            bool misionCompletada = false)
+
+
         {
             using SqlConnection conexion = ObtenerConexion();
-
             conexion.Open();
 
-            string consulta = @"
-                INSERT INTO dbo.Partidas
-                (NombreJugador, Edad, Salud, SaludMaxima,
-                 Energia, Estabilidad, Experiencia,
-                 PosicionX, PosicionY, Inventario,
-                 NombreMapa, Semilla, FechaGuardado)
+            using SqlTransaction transaccion =
+                conexion.BeginTransaction();
+
+            try
+            {
+                string consulta = @"
+            INSERT INTO dbo.Partidas
+            (NombreJugador, Edad, Salud, SaludMaxima,
+             Energia, Estabilidad, Experiencia,
+             PosicionX, PosicionY, Inventario,
+             NombreMapa, Semilla, FechaGuardado)
+            OUTPUT INSERTED.Id
+            VALUES
+            (@Nombre, @Edad, @Salud, @SaludMaxima,
+             @Energia, @Estabilidad, @Experiencia,
+             @X, @Y, @Inventario,
+             @Mundo, @Semilla, GETDATE())";
+
+                using SqlCommand comando =
+                    new SqlCommand(consulta, conexion, transaccion);
+
+                comando.Parameters.AddWithValue(
+                    "@Nombre", cadete.Nombre);
+
+                comando.Parameters.AddWithValue(
+                    "@Edad", cadete.Edad);
+
+                comando.Parameters.AddWithValue(
+                    "@Salud", cadete.Salud);
+
+                comando.Parameters.AddWithValue(
+                    "@SaludMaxima", cadete.SaludMaxima);
+
+                comando.Parameters.AddWithValue(
+                    "@Energia", cadete.Energia);
+
+                comando.Parameters.AddWithValue(
+                    "@Estabilidad", cadete.Estabilidad);
+
+                comando.Parameters.AddWithValue(
+                    "@Experiencia", cadete.Experiencia);
+
+                comando.Parameters.AddWithValue("@X", (int)x);
+                comando.Parameters.AddWithValue("@Y", (int)y);
+
+                comando.Parameters.AddWithValue(
+                    "@Inventario",
+                    JsonSerializer.Serialize(cadete.Inventario));
+
+                comando.Parameters.AddWithValue("@Mundo", mundo);
+                comando.Parameters.AddWithValue("@Semilla", semilla);
+
+                int idPartida = Convert.ToInt32(
+                    comando.ExecuteScalar());
+
+                // Agrupar los objetos del inventario
+                Dictionary<string, int> objetos = new();
+
+                foreach (string objeto in cadete.Inventario)
+                {
+                    if (objetos.ContainsKey(objeto))
+                        objetos[objeto]++;
+                    else
+                        objetos[objeto] = 1;
+                }
+
+                // Guardar inventario relacionado con la partida
+                foreach (var objeto in objetos)
+                {
+                    string sqlInventario = @"
+                INSERT INTO dbo.Inventario
+                (IdPartida, NombreObjeto, Cantidad)
                 VALUES
-                (@Nombre, @Edad, @Salud, @SaludMaxima,
-                 @Energia, @Estabilidad, @Experiencia,
-                 @X, @Y, @Inventario,
-                 @Mundo, @Semilla, GETDATE())";
+                (@IdPartida, @NombreObjeto, @Cantidad)";
 
-            using SqlCommand comando =
-                new SqlCommand(consulta, conexion);
+                    using SqlCommand cmdInventario =
+                        new SqlCommand(
+                            sqlInventario, conexion, transaccion);
 
-            comando.Parameters.AddWithValue(
-                "@Nombre", cadete.Nombre);
+                    cmdInventario.Parameters.AddWithValue(
+                        "@IdPartida", idPartida);
 
-            comando.Parameters.AddWithValue(
-                "@Edad", cadete.Edad);
+                    cmdInventario.Parameters.AddWithValue(
+                        "@NombreObjeto", objeto.Key);
 
-            comando.Parameters.AddWithValue(
-                "@Salud", cadete.Salud);
+                    cmdInventario.Parameters.AddWithValue(
+                        "@Cantidad", objeto.Value);
 
-            comando.Parameters.AddWithValue(
-                "@SaludMaxima", cadete.SaludMaxima);
+                    cmdInventario.ExecuteNonQuery();
+                }
 
-            comando.Parameters.AddWithValue(
-                "@Energia", cadete.Energia);
+                // Guardar enemigos relacionados con la partida
+                if (enemigos != null)
+                {
+                    foreach (Enemigo2D enemigo in enemigos)
+                    {
+                        string sqlEnemigos = @"
+            INSERT INTO dbo.Enemigos
+            (IdPartida, Nombre, Salud, PosicionX, PosicionY)
+            VALUES
+            (@IdPartida, @Nombre, @Salud, @X, @Y)";
 
-            comando.Parameters.AddWithValue(
-                "@Estabilidad", cadete.Estabilidad);
+                        using SqlCommand cmdEnemigo =
+                            new SqlCommand(
+                                sqlEnemigos, conexion, transaccion);
 
-            comando.Parameters.AddWithValue(
-                "@Experiencia", cadete.Experiencia);
+                        cmdEnemigo.Parameters.AddWithValue(
+                            "@IdPartida", idPartida);
 
-            comando.Parameters.AddWithValue("@X", (int)x);
-            comando.Parameters.AddWithValue("@Y", (int)y);
+                        cmdEnemigo.Parameters.AddWithValue(
+                            "@Nombre", enemigo.Datos.Nombre);
 
-            comando.Parameters.AddWithValue(
-                "@Inventario",
-                JsonSerializer.Serialize(cadete.Inventario));
+                        cmdEnemigo.Parameters.AddWithValue(
+                            "@Salud", enemigo.Datos.Salud);
 
-            comando.Parameters.AddWithValue("@Mundo", mundo);
-            comando.Parameters.AddWithValue("@Semilla", semilla);
+                        cmdEnemigo.Parameters.AddWithValue(
+                            "@X", enemigo.X);
 
-            comando.ExecuteNonQuery();
+                        cmdEnemigo.Parameters.AddWithValue(
+                            "@Y", enemigo.Y);
+
+                        cmdEnemigo.ExecuteNonQuery();
+                    }
+                }
+
+                // Guardar el estado de la misión
+                string sqlMision = @"
+    INSERT INTO dbo.Misiones
+    (IdPartida, NombreMision, Estado)
+    VALUES
+    (@IdPartida, @NombreMision, @Estado)";
+
+                using SqlCommand cmdMision =
+                    new SqlCommand(sqlMision, conexion, transaccion);
+
+                cmdMision.Parameters.AddWithValue(
+                    "@IdPartida", idPartida);
+
+                cmdMision.Parameters.AddWithValue(
+                    "@NombreMision", "La anomalía perdida");
+
+                cmdMision.Parameters.AddWithValue(
+                    "@Estado",
+                    misionCompletada ? "Completada" : "En progreso");
+
+                cmdMision.ExecuteNonQuery();
+
+                transaccion.Commit();
+            }
+            catch
+            {
+                transaccion.Rollback();
+                throw;
+            }
         }
 
         public static DataTable ObtenerPartidas()
-
         {
-            public static DataTable CargarPartida(int id)
-        {
-            using SqlConnection conexion = ObtenerConexion();
-
-            conexion.Open();
-
-            string consulta = @"
-        SELECT * FROM dbo.Partidas
-        WHERE Id = @Id";
-
-            using SqlCommand comando =
-                new SqlCommand(consulta, conexion);
-
-            comando.Parameters.AddWithValue("@Id", id);
-
-            using SqlDataAdapter adaptador =
-                new SqlDataAdapter(comando);
-
-            DataTable tabla = new DataTable();
-
-            adaptador.Fill(tabla);
-
-            return tabla;
-        }
             using SqlConnection conexion = ObtenerConexion();
 
             conexion.Open();
@@ -131,5 +219,86 @@ namespace ConsoleApp9
 
             return tabla;
         }
+
+        public static DataTable CargarPartida(int id)
+        {
+            using SqlConnection conexion = ObtenerConexion();
+
+            conexion.Open();
+
+            string consulta = @"
+                SELECT * FROM dbo.Partidas
+                WHERE Id = @Id";
+
+            using SqlCommand comando =
+                new SqlCommand(consulta, conexion);
+
+            comando.Parameters.AddWithValue("@Id", id);
+
+            using SqlDataAdapter adaptador =
+                new SqlDataAdapter(comando);
+
+            DataTable tabla = new DataTable();
+
+            adaptador.Fill(tabla);
+
+            return tabla;
+        }
+
+        public static bool CargarMision(int idPartida)
+        {
+            using SqlConnection conexion = ObtenerConexion();
+            conexion.Open();
+
+            string consulta = @"
+        SELECT Estado
+        FROM dbo.Misiones
+        WHERE IdPartida = @IdPartida
+        AND NombreMision = @NombreMision";
+
+            using SqlCommand comando =
+                new SqlCommand(consulta, conexion);
+
+            comando.Parameters.AddWithValue(
+                "@IdPartida", idPartida);
+
+            comando.Parameters.AddWithValue(
+                "@NombreMision", "La anomalía perdida");
+
+            object? resultado = comando.ExecuteScalar();
+
+            return resultado?.ToString() == "Completada";
+        }
+
+        public static DataTable CargarEnemigos(int idPartida)
+        {
+
+            using SqlConnection conexion = ObtenerConexion();
+
+            conexion.Open();
+
+            string consulta = @"
+        SELECT Nombre, Salud, PosicionX, PosicionY
+        FROM dbo.Enemigos
+        WHERE IdPartida = @IdPartida
+        ORDER BY IdEnemigo";
+
+            using SqlCommand comando =
+                new SqlCommand(consulta, conexion);
+
+            comando.Parameters.AddWithValue(
+                "@IdPartida", idPartida);
+
+            using SqlDataAdapter adaptador =
+                new SqlDataAdapter(comando);
+
+            DataTable tabla = new DataTable();
+
+            adaptador.Fill(tabla);
+
+            return tabla;
+        }
+
     }
 }
+       

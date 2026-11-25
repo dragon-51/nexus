@@ -37,6 +37,9 @@ namespace ConsoleApp9
         private bool izquierda = false;
         private bool derecha = false;
         private bool enSuelo = false;
+        private int saltosRealizados = 0;
+        private const int maxSaltos = 2;
+        private bool espacioPresionado = false;
 
         private readonly System.Windows.Forms.Timer reloj =
             new System.Windows.Forms.Timer();
@@ -81,14 +84,31 @@ namespace ConsoleApp9
         private int fotograma = 0;
         private int contadorAnimacion = 0;
         private bool mirandoDerecha = true;
+        private bool misionCompletada = false;
 
-        public juego2d(Cadete nuevoCadete, string mundo, int semilla)
+
+        public juego2d(
+            Cadete nuevoCadete,
+            string mundo,
+            int semilla,
+            float xGuardada = 100,
+            float yGuardada = 400,
+            int? idPartida = null)
+
+
         {
             InitializeComponent();
 
             cadete = nuevoCadete;
             nombreMundo = mundo;
             semillaMundo = semilla;
+
+            jugadorX = xGuardada;
+            jugadorY = yGuardada;
+
+            vidaJugador = cadete.Salud;
+           
+
 
             Text = "NEXUS - " + nombreMundo;
 
@@ -203,7 +223,22 @@ namespace ConsoleApp9
 
             reloj.Interval = 16;
             reloj.Tick += ActualizarJuego;
-            GenerarEnemigos();
+
+
+            if (idPartida.HasValue)
+            {
+                RecuperarEnemigos(idPartida.Value);
+
+                misionCompletada =
+                    PartidaSQL.CargarMision(idPartida.Value);
+            }
+            else
+            {
+                GenerarEnemigos();
+                misionCompletada = false;
+            }
+
+
             ConfigurarBotonesJuego();
             reloj.Start();
         }
@@ -218,15 +253,28 @@ namespace ConsoleApp9
             {
                 Atacar();
             }
+
+            if (e.KeyCode == Keys.R)
+            {
+                RecargarEnergia();
+            }
+
+
             if (e.KeyCode == Keys.Space)
             {
                 e.Handled = true;
                 e.SuppressKeyPress = true;
 
-                if (enSuelo)
+                if (!espacioPresionado)
                 {
-                    velocidadY = fuerzaSalto;
-                    enSuelo = false;
+                    espacioPresionado = true;
+
+                    if (saltosRealizados < maxSaltos)
+                    {
+                        velocidadY = fuerzaSalto;
+                        enSuelo = false;
+                        saltosRealizados++;
+                    }
                 }
             }
 
@@ -270,6 +318,49 @@ namespace ConsoleApp9
                     Random.Shared.Next(1, 4)));
             }
         }
+        private void RecuperarEnemigos(int idPartida)
+        {
+            enemigos.Clear();
+
+            DataTable tabla = PartidaSQL.CargarEnemigos(idPartida);
+
+            foreach (DataRow fila in tabla.Rows)
+            {
+                string nombre = fila["Nombre"].ToString()!;
+
+                float x = Convert.ToSingle(fila["PosicionX"]);
+                float y = Convert.ToSingle(fila["PosicionY"]);
+
+                Personaje tipo;
+
+                if (nombre == "Unidad Centinela Automatizada")
+                    tipo = new centinela();
+                else
+                    tipo = new Enemigo();
+
+                tipo.Salud = Convert.ToInt32(fila["Salud"]);
+
+                Rectangle plataforma = plataformas.Find(p =>
+                    x >= p.Left &&
+                    x <= p.Right &&
+                    Math.Abs(p.Top - (y + altoEnemigo)) < 5);
+
+                int minX = plataforma.IsEmpty
+                    ? (int)x : plataforma.Left;
+
+                int maxX = plataforma.IsEmpty
+                    ? (int)x : plataforma.Right - anchoEnemigo;
+
+                enemigos.Add(new Enemigo2D(
+                    tipo,
+                    x,
+                    y,
+                    minX,
+                    maxX,
+                    2));
+            }
+        }
+
         private void ConfigurarBotonesJuego()
         {
             btnGuardar.Text = "GUARDAR PARTIDA";
@@ -294,12 +385,16 @@ namespace ConsoleApp9
 
                 try
                 {
+
+
                     PartidaSQL.GuardarPartida(
                         cadete,
                         nombreMundo,
                         semillaMundo,
                         jugadorX,
-                        jugadorY
+                        jugadorY,
+                        enemigos,
+                        misionCompletada
                     );
 
                     MessageBox.Show(
@@ -346,6 +441,52 @@ namespace ConsoleApp9
             btnGuardar.BringToFront();
             btnMenu.BringToFront();
         }
+        private void VerificarMision()
+        {
+            if (misionCompletada || enemigos.Count == 0)
+                return;
+
+            foreach (Enemigo2D enemigo in enemigos)
+            {
+                if (enemigo.Datos.Salud > 0)
+                    return;
+            }
+
+            if (jugadorX >= anchoMundo - 150)
+            {
+                misionCompletada = true;
+                cadete.Experiencia += 100;
+
+                reloj.Stop();
+
+                MessageBox.Show(
+                    "¡MISIÓN COMPLETADA!\n\n" +
+                    "La anomalía perdida\n" +
+                    "Recompensa: 100 XP",
+                    "NEXUS",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                reloj.Start();
+            }
+        }
+
+        private void RecargarEnergia()
+        {
+            if (cadete.Energia >= 100)
+                return;
+
+            if (cadete.Inventario.Contains("Célula de energía"))
+            {
+                cadete.Inventario.Remove("Célula de energía");
+
+                cadete.Energia = Math.Min(
+                    100, cadete.Energia + 35);
+
+                Invalidate();
+            }
+        }
+
         private void Atacar()
         {
             if (recargaAtaque > 0 || cadete.Energia < 5)
@@ -391,6 +532,7 @@ namespace ConsoleApp9
         {
             if (e.KeyCode == Keys.A) izquierda = false;
             if (e.KeyCode == Keys.D) derecha = false;
+            if (e.KeyCode == Keys.Space) espacioPresionado = false;
         }
 
         private void ActualizarJuego(object? sender, EventArgs e)
@@ -464,6 +606,7 @@ namespace ConsoleApp9
                     jugadorY = plataforma.Top - altoJugador;
                     velocidadY = 0;
                     enSuelo = true;
+                    saltosRealizados = 0;
                     break;
                 }
                
@@ -514,6 +657,7 @@ namespace ConsoleApp9
                     && tiempoInvulnerable == 0)
                 {
                     vidaJugador = Math.Max(0, vidaJugador - danoEnemigo);
+                    cadete.Salud = vidaJugador;
 
                     cadete.Estabilidad = Math.Max(
                         0, cadete.Estabilidad - 8);
@@ -531,6 +675,7 @@ namespace ConsoleApp9
                 MessageBox.Show("Has muerto", "NEXUS");
 
                 vidaJugador = vidaMaxima;
+                cadete.Salud = vidaJugador;
                 jugadorX = 100;
                 jugadorY = 400;
                 velocidadY = 0;
@@ -545,6 +690,7 @@ namespace ConsoleApp9
 
             if (recargaAtaque > 0)
                 recargaAtaque--;
+            VerificarMision();
             Invalidate();
         }
 
@@ -785,6 +931,47 @@ namespace ConsoleApp9
             e.Graphics.DrawString(
                 "XP: " + cadete.Experiencia,
                 Font, Brushes.Gold, 20, 155);
+
+            int derrotados = 0;
+
+            foreach (Enemigo2D enemigo in enemigos)
+            {
+                if (enemigo.Datos.Salud <= 0)
+                    derrotados++;
+            }
+
+            e.Graphics.DrawString(
+                "MISIÓN: La anomalía perdida",
+                Font, Brushes.MediumPurple, 20, 185);
+
+            e.Graphics.DrawString(
+                "Enemigos derrotados: " + derrotados +
+                " / " + enemigos.Count,
+                Font, Brushes.White, 20, 205);
+
+
+            string objetivo;
+
+            if (misionCompletada)
+            {
+                objetivo = "¡MISIÓN COMPLETADA!";
+            }
+            else if (derrotados == enemigos.Count && enemigos.Count > 0)
+            {
+                objetivo = "Objetivo: Llega al final del mapa";
+            }
+            else
+            {
+                objetivo = "Objetivo: Derrota a todos los enemigos";
+            }
+
+            e.Graphics.DrawString(
+                objetivo,
+                Font,
+                misionCompletada ? Brushes.LimeGreen : Brushes.Gold,
+                20, 225);
+
+
         }
 
         private void DibujarBarra(Graphics g, string nombre,

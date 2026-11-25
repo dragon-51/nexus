@@ -213,17 +213,26 @@ namespace ConsoleApp9
             }
         }
 
-
-        // CONTINUAR
         private void button2_Click(
             object sender, EventArgs e)
         {
             Reproducir(sonidoClick);
 
-            MessageBox.Show(
-                "La carga de partidas SQL se implementará próximamente.",
-                "NEXUS");
+            this.Hide();
+
+            try
+            {
+                using (cargarpartidas ventana = new cargarpartidas())
+                {
+                    ventana.ShowDialog();
+                }
+            }
+            finally
+            {
+                this.Show();
+            }
         }
+
 
 
         // AJUSTES

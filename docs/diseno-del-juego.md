@@ -1,9 +1,11 @@
+
 # Diseño del videojuego NEXUS
 
 **Documento:** Diseño del juego  
-**Versión propuesta:** 1.0  
-**Base de diseño:** código desarrollado durante H3 en C#  
-**Estado:** propuesta de evolución; los elementos descritos como mejoras todavía no se consideran implementados.
+**Versión:** 2.0  
+**Fecha de actualización:** 25 de noviembre de 2026  
+**Base de diseño:** Proyecto NEXUS desarrollado durante H3.  
+**Estado:** Diseño actualizado según la implementación actual y propuestas de mejora.
 
 ---
 
@@ -11,460 +13,828 @@
 
 ### 1.1. Concepto
 
-NEXUS es un videojuego de exploración y supervivencia de ciencia ficción. El jugador asume el papel de un **cadete** que ingresa a distintas realidades para investigar anomalías, recuperar recursos y regresar de forma segura a la base.
+NEXUS Training System es un videojuego de ciencia ficción, acción, exploración y supervivencia en 2D.
 
-La propuesta parte del prototipo de H3, que ya permite registrar al cadete, seleccionar una realidad (Alpha, Beta o Gamma), recorrer un mapa representado mediante una matriz, encontrar eventos aleatorios, combatir enemigos, administrar un inventario y buscar un núcleo energético para completar la misión.
+El jugador asume el papel de un cadete perteneciente al sistema NEXUS, cuya responsabilidad consiste en explorar mundos desconocidos, enfrentarse a enemigos, administrar sus recursos y completar misiones.
 
-La evolución busca convertir esa simulación en una experiencia más clara y progresiva, manteniendo inicialmente el formato de aplicación de consola en C# y la estructura orientada a objetos existente.
+El proyecto surge del prototipo desarrollado durante H3, que utilizaba una aplicación de consola en C#, mapas matriciales, eventos aleatorios y combate por turnos.
 
-### 1.2. Papel del jugador y objetivo
+La versión actual evoluciona hacia una experiencia gráfica mediante Windows Forms, incorporando plataformas, movimiento, combate en tiempo real y persistencia mediante SQL Server.
 
-El jugador controla a un cadete de NEXUS. Su objetivo principal es explorar el entorno seleccionado, localizar el núcleo energético de la anomalía y alcanzar el punto de extracción sin que su salud, energía o estabilidad lleguen a niveles críticos.
+### 1.2. Género
+
+- Acción.
+- Exploración.
+- Supervivencia.
+- Plataformas 2D.
+- Ciencia ficción.
+
+### 1.3. Papel del jugador
+
+El jugador controla a un cadete encargado de explorar diferentes escenarios y superar los peligros presentes en el mundo.
 
 Durante la partida deberá:
 
-- Elegir una realidad para explorar.
-- Moverse por el mapa y evitar obstáculos.
-- Investigar los sectores y responder a los eventos que aparezcan.
-- Enfrentarse a unidades hostiles cuando sea necesario.
-- Recoger y utilizar objetos de supervivencia.
-- Administrar energía y estabilidad para evitar el colapso.
-- Encontrar el núcleo y completar la extracción.
+- Desplazarse por el escenario.
+- Superar plataformas y obstáculos.
+- Enfrentarse a enemigos.
+- Administrar su salud y energía.
+- Utilizar recursos del inventario.
+- Obtener experiencia.
+- Completar la misión principal.
+- Guardar y recuperar su progreso.
 
-### 1.3. Motivación para continuar
+### 1.4. Objetivo principal
 
-La motivación principal será superar misiones de dificultad creciente, descubrir las características de las distintas realidades y conseguir recursos y experiencia. Como evolución, los puntos de experiencia podrán utilizarse para desbloquear mejoras del cadete o preparar futuras expediciones. Esta progresión ampliada es una propuesta y no una función completa del código actual.
+El objetivo consiste en eliminar a los enemigos presentes en el escenario y alcanzar el final del mundo para completar la misión denominada **La anomalía perdida**.
 
----
+### 1.5. Motivación del jugador
 
-## 2. Ciclo principal de juego
+La motivación se basa en:
 
-El ciclo de una partida se plantea de la siguiente manera:
-
-```text
-┌─────────────────────────────┐
-│       MENÚ PRINCIPAL        │
-│       Iniciar misión        │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│ IDENTIFICACIÓN DEL CADETE   │
-│ Nombre, edad y parámetros   │
-│ iniciales                   │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│ SELECCIÓN DE REALIDAD       │
-│ Alpha / Beta / Gamma        │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│ EXPLORACIÓN DEL MAPA        │
-│ Movimiento con W, A, S, D   │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│ EVENTO EN EL SECTOR         │
-│ Enemigo / objeto / radiación│
-│ / zona sin evento           │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│ GESTIÓN DE RECURSOS         │
-│ Salud, energía, estabilidad │
-│ e inventario                │
-└──────────────┬──────────────┘
-               ▼
-       ¿Se encontró el núcleo?
-          │             │
-         NO             SÍ
-          │             ▼
-          │    ┌──────────────────────┐
-          │    │ DIRIGIRSE A LA       │
-          │    │ EXTRACCIÓN SEGURA    │
-          │    └──────────┬───────────┘
-          │               ▼
-          │    ┌──────────────────────┐
-          │    │ MISIÓN COMPLETADA    │
-          │    │ Recompensa y XP      │
-          │    └──────────┬───────────┘
-          │               ▼
-          │    ┌──────────────────────┐
-          │    │ PROGRESIÓN Y         │
-          │    │ SIGUIENTE EXPEDICIÓN │
-          │    └──────────────────────┘
-          │
-          └──────► Continuar explorando
-
-Si la salud llega a cero o la entropía supera el límite,
-se produce una desconexión de emergencia y termina la sesión.
-```
-
-**Aclaración:** en el código H3 ya existe la búsqueda del núcleo y la extracción. La recompensa de 100 XP se entrega al completar esa misión. La selección de nuevas misiones y una campaña con varias etapas son ampliaciones propuestas.
+- Superar los desafíos del escenario.
+- Mejorar el desempeño durante el combate.
+- Obtener experiencia.
+- Administrar los recursos disponibles.
+- Completar objetivos.
+- Conservar el progreso entre sesiones.
+- Explorar futuras ampliaciones del videojuego.
 
 ---
 
-## 3. Mecánicas y reglas
+## 2. Evolución desde H3
 
-### 3.1. Cadete y exploradores
+El diseño actual conserva la identidad y las clases principales del proyecto original, pero modifica la forma de interacción con el jugador.
 
-En la versión H3 existe una clase `Cadete`, derivada de `Personaje`. El cadete posee nombre, edad, salud, energía, estabilidad, experiencia, posición en el mapa e inventario.
-
-La propuesta mantiene al cadete como personaje principal. En una etapa posterior se podrán incorporar otros exploradores con atributos o especialidades diferentes, reutilizando la clase base `Personaje` y el polimorfismo que ya se utiliza para los enemigos. No se considera que esos exploradores adicionales estén implementados actualmente.
-
-**Reglas propuestas para el cadete:**
-
-- La salud representa la integridad biológica y disminuye al recibir daño.
-- La energía se consume al realizar determinadas acciones, como atacar, y puede recuperarse con células de energía.
-- La estabilidad representa la capacidad del cadete para resistir las anomalías.
-- La experiencia registra el avance conseguido al completar misiones.
-- La posición indica la ubicación del cadete dentro de la matriz del mapa.
-
-Los valores de energía y estabilidad se manejan en una escala de 0 a 100. La evolución deberá mantener ese rango en todas las modificaciones, no solamente al crear el personaje.
-
-### 3.2. Mapas y exploración
-
-La clase `MapaRealidad` representa cada entorno mediante una matriz bidimensional de caracteres. El jugador se desplaza con las teclas W, A, S y D. La tecla Q permite salir del modo de exploración y volver al panel de control.
-
-El prototipo contiene tres realidades:
-
-- **Alpha – Nexo Urbano.**
-- **Beta – Yermo Cuántico.**
-- **Gamma – Vortex Espacial.**
-
-Los mapas contienen obstáculos y casillas transitables. La representación utiliza caracteres y colores para facilitar su lectura.
-
-| Símbolo | Significado |
-|---|---|
-| C | Posición actual del cadete (se dibuja sobre el mapa) |
-| █ | Obstáculo no transitable |
-| . o espacio | Sector transitable |
-| N | Núcleo energético que debe localizarse |
-| ~, R, O y * | Elementos o zonas especiales representados en los mapas |
-
-**Reglas de movimiento:**
-
-1. El cadete solo puede desplazarse dentro de los límites de la matriz.
-2. No puede atravesar obstáculos.
-3. Al entrar en una casilla se puede activar un evento.
-4. Al encontrar el núcleo N, el objetivo principal queda asegurado y se habilita la extracción.
-5. Después de recuperar el núcleo, el jugador debe regresar por un sector transitable y completar la extracción.
-
-Como mejora, cada realidad podrá tener una identidad visual, eventos y distribución de obstáculos propios, conservando la matriz como base de representación.
-
-### 3.3. Energía, estabilidad, salud y entropía
-
-La supervivencia depende de administrar tres indicadores:
-
-- **Salud:** comienza en 100 puntos y disminuye cuando el cadete recibe ataques.
-- **Energía:** se utiliza en acciones y combate. Puede recuperarse con células de energía o mediante la operación de sobrecarga disponible en el panel.
-- **Estabilidad:** puede recuperarse con objetos de escudo y representa la resistencia del cadete frente a las anomalías.
-
-El sistema calcula la entropía con la fórmula:
-
-`Entropía = (100 - Estabilidad) × (100 - Energía)`
-
-Si la entropía supera 5600 o la salud llega a cero, el sistema genera una alerta crítica y detiene la sesión mediante una desconexión de emergencia.
-
-La interfaz deberá mostrar estos indicadores de forma permanente durante la exploración y el combate, para que el jugador pueda tomar decisiones antes de llegar a una condición crítica.
-
-### 3.4. Misiones
-
-La misión principal actual se denomina **“La anomalía perdida”**. Consiste en localizar el núcleo energético marcado con N y realizar una extracción segura.
-
-**Reglas de la misión actual:**
-
-1. La misión comienza después de validar los datos y parámetros iniciales del cadete.
-2. El objetivo aparece en el panel como la búsqueda del núcleo energético.
-3. Al entrar en la casilla N, el sistema marca la misión como completada.
-4. La extracción no se permite antes de localizar el núcleo.
-5. Al extraer al cadete después de completar el objetivo, se otorgan 100 puntos de experiencia.
-
-**Evolución propuesta:** incorporar un registro de misiones que muestre nombre, descripción, objetivo, estado y recompensa. En futuras versiones se podrán añadir misiones secundarias de exploración y recolección, sin eliminar la misión principal.
-
-### 3.5. Eventos y combate
-
-Al explorar una casilla, el prototipo puede activar distintos resultados aleatorios:
-
-- Encuentro con un enemigo.
-- Hallazgo de un objeto.
-- Pérdida de energía por radiación.
-- Ningún evento especial.
-
-Los enemigos actuales son la **Unidad Centinela Automatizada** y el **Infiltrado Kreeg de la Anomalía**. Ambos heredan de `Personaje` y cuentan con ataques propios. El combate se desarrolla por turnos.
-
-Durante un combate, el jugador puede:
-
-1. Atacar con el rifle cuántico, consumiendo energía.
-2. Utilizar un objeto del inventario.
-3. Intentar escapar.
-
-La evolución deberá mostrar con claridad el daño causado, la salud restante y el consumo de energía después de cada turno.
-
-### 3.6. Inventario
-
-El cadete comienza con una célula de energía y un escudo. Durante la exploración puede encontrar células de energía, escudos y módulos de ataque.
-
-El inventario actual permite consultar objetos, utilizarlos o eliminarlos. Sus efectos principales son:
-
-- **Célula de energía:** recupera energía.
-- **Escudo:** recupera estabilidad.
-- **Módulo de ataque:** representa un objeto de mejora temporal previsto por el prototipo.
-
-Como mejora, cada objeto tendrá un nombre, una descripción y un efecto claramente indicado antes de utilizarlo. También se propone mostrar la cantidad disponible cuando el sistema evolucione a un inventario con unidades acumulables.
-
----
-
-## 4. Diseño de pantallas
-
-Los siguientes wireframes son bocetos conceptuales de la interfaz. No son pantallas funcionales ni representan una interfaz gráfica ya implementada. La propuesta conserva la presentación en consola y organiza mejor la información que actualmente se muestra mediante menús y paneles de texto.
-
-### 4.1. Pantalla 1 – Menú principal
-
-**Objetivo:** permitir iniciar una expedición, consultar información y salir del juego.
-
-```text
-╔════════════════════════════════════════════╗
-║                                            ║
-║              N E X U S                     ║
-║         SISTEMA DE EXPLORACIÓN             ║
-║                                            ║
-║       "La realidad está en tus manos"      ║
-║                                            ║
-║           ┌──────────────────┐             ║
-║           │  1. Nueva misión │             ║
-║           │  2. Continuar    │             ║
-║           │  3. Exploradores │             ║
-║           │  4. Opciones     │             ║
-║           │  5. Salir        │             ║
-║           └──────────────────┘             ║
-║                                            ║
-║             NEXUS TRAINING SYSTEM          ║
-╚════════════════════════════════════════════╝
-```
-
-**Elementos visibles:** título del juego, breve frase de ambientación y opciones principales.
-
-**Navegación:** “Nueva misión” lleva a la identificación del cadete y selección de realidad. “Continuar” podrá habilitarse cuando exista guardado de partidas. “Exploradores” mostrará los datos del personaje y “Opciones” permitirá ajustar preferencias básicas.
-
-**Relación con H3:** el prototipo ya presenta una bienvenida y solicita los datos del cadete, pero todavía no cuenta con este menú principal completo. Las opciones adicionales son propuestas.
-
-### 4.2. Pantalla 2 – Exploración o mapa
-
-**Objetivo:** mostrar el entorno, la posición del cadete y sus indicadores de supervivencia.
-
-```text
-╔════════════════════════════════════════════╗
-║ REALIDAD: BETA – YERMO CUÁNTICO            ║
-║ CADETE: [Nombre]                           ║
-║ SALUD: 100%  ENERGÍA: 75%  ESTABILIDAD: 80%║
-╠════════════════════════════════════════════╣
-║                                            ║
-║       █ █ █ █ █ █ █ █                      ║
-║       █ C . . ~ . N █                      ║
-║       █ R . . . . . █                      ║
-║       █ █ █ █ █ █ █ █                      ║
-║                                            ║
-║ LEYENDA:                                   ║
-║ C: Cadete   N: Núcleo   █: Obstáculo       ║
-║ ~: Zona especial   R: Recurso              ║
-║                                            ║
-╠════════════════════════════════════════════╣
-║ OBJETIVO: Localizar el núcleo energético   ║
-║ CONTROLES: W A S D = Mover | Q = Regresar  ║
-╚════════════════════════════════════════════╝
-```
-
-**Elementos visibles:** nombre de la realidad, nombre del cadete, salud, energía, estabilidad, mapa, leyenda, objetivo y controles.
-
-**Navegación:** desde el menú de operaciones se entra a exploración. W, A, S y D mueven al cadete; Q vuelve al panel de control. Al entrar en una casilla especial se muestra el resultado del evento.
-
-**Relación con H3:** esta pantalla se basa directamente en `MapaRealidad.Renderizar()` y `MenuMovimiento()`, que ya dibujan la matriz, la posición del cadete y los controles.
-
-### 4.3. Pantalla 3 – Misiones
-
-**Objetivo:** explicar qué debe conseguir el jugador y cuál es el estado de cada objetivo.
-
-```text
-╔════════════════════════════════════════════╗
-║               REGISTRO DE MISIONES         ║
-╠════════════════════════════════════════════╣
-║                                            ║
-║  MISIÓN PRINCIPAL                          ║
-║  La anomalía perdida                       ║
-║                                            ║
-║  Objetivo: localizar el núcleo energético  ║
-║  Sector: realidad seleccionada             ║
-║  Estado: [ EN PROGRESO ]                   ║
-║                                            ║
-║  Recompensa: 100 XP                        ║
-║                                            ║
-║  Pasos:                                    ║
-║  [ ] Explorar el mapa                      ║
-║  [ ] Localizar el núcleo N                 ║
-║  [ ] Llegar al punto de extracción         ║
-║                                            ║
-╠════════════════════════════════════════════╣
-║  [1] Ver objetivo  [2] Volver              ║
-╚════════════════════════════════════════════╝
-```
-
-**Elementos visibles:** nombre de la misión, descripción, objetivo, estado, pasos y recompensa.
-
-**Navegación:** se accede desde el panel principal. Al seleccionar una misión se consulta su objetivo. Al completarla, el estado cambia y se informa al jugador de la recompensa.
-
-**Relación con H3:** actualmente el objetivo y su estado aparecen en el panel de estadísticas mediante `_misionCompletada`. El registro detallado y la lista de pasos son una mejora propuesta.
-
-### 4.4. Pantalla 4 – Exploradores e inventario
-
-**Objetivo:** consultar el estado del cadete y administrar los objetos recolectados.
-
-```text
-╔════════════════════════════════════════════╗
-║          CADETE E INVENTARIO               ║
-╠════════════════════════════════════════════╣
-║  EXPLORADOR ACTUAL: [Nombre del cadete]     ║
-║                                            ║
-║  Salud:       [████████████████] 100       ║
-║  Energía:     [████████████░░░░]  75       ║
-║  Estabilidad: [█████████████░░░]  80       ║
-║  Experiencia: 0 XP                         ║
-║                                            ║
-╠════════════════════════════════════════════╣
-║  INVENTARIO                                ║
-║                                            ║
-║  1. Célula de energía                      ║
-║     Recupera energía                       ║
-║  2. Escudo                                 ║
-║     Recupera estabilidad                   ║
-║  3. Módulo de ataque                       ║
-║     Mejora temporal                        ║
-║                                            ║
-║  [1] Usar objeto                           ║
-║  [2] Eliminar objeto                       ║
-║  [3] Regresar                              ║
-╚════════════════════════════════════════════╝
-```
-
-**Elementos visibles:** datos del cadete, barras de salud, energía y estabilidad, experiencia y lista de objetos con sus efectos.
-
-**Navegación:** se accede desde el menú principal o panel de operaciones. El jugador selecciona un objeto para usarlo o eliminarlo y después regresa al menú anterior.
-
-**Relación con H3:** se apoya en las propiedades de `Cadete`, el método `MostrarInventario()` y `MenuInventario()`. La presentación agrupada y las descripciones son mejoras visuales propuestas.
-
-### 4.5. Navegación general
-
-```text
-MENÚ PRINCIPAL
-   ├── Nueva misión
-   │      └── Identificación del cadete
-   │             └── Selección de realidad
-   │                    └── Panel de operaciones
-   │                           ├── Explorar mapa
-   │                           ├── Misiones
-   │                           ├── Explorador e inventario
-   │                           ├── Escanear / recuperar energía
-   │                           └── Extracción
-   ├── Continuar (futuro: requiere guardado)
-   ├── Exploradores
-   ├── Opciones
-   └── Salir
-```
-
-El combate se abrirá como una pantalla temporal cuando ocurra un encuentro durante la exploración. Al terminar, el jugador regresará al mapa si el cadete sigue en condiciones de continuar.
-
----
-
-## 5. Experiencia de usuario
-
-La interfaz debe ser sencilla, consistente y adecuada para una aplicación de consola. El jugador debe comprender rápidamente su situación y saber qué acción puede realizar.
-
-### 5.1. Legibilidad
-
-- Utilizar títulos cortos y descriptivos para identificar cada pantalla.
-- Mantener alineados los indicadores y las opciones.
-- Evitar mostrar demasiada información al mismo tiempo.
-- Usar símbolos fáciles de distinguir en el mapa.
-- Mantener una leyenda visible para los caracteres especiales.
-
-### 5.2. Jerarquía visual
-
-La información más importante será la supervivencia del cadete: salud, energía y estabilidad. En segundo lugar se mostrará el objetivo de la misión y, después, las opciones disponibles.
-
-Los colores conservarán una función constante: verde para estados positivos, amarillo para advertencias, rojo para peligro y cian para elementos tecnológicos o informativos. El color no será la única forma de comunicar un estado; también se utilizarán palabras como “ALERTA”, “COMPLETADO” o “BLOQUEADO”.
-
-### 5.3. Consistencia
-
-- Mantener el mismo formato de títulos, paneles y barras en las pantallas.
-- Utilizar los mismos nombres para los recursos y acciones en todo el juego.
-- Conservar controles coherentes: W, A, S y D para desplazamiento y Q para regresar desde la exploración.
-- Mostrar las opciones numéricas junto con su acción.
-
-### 5.4. Facilidad de navegación
-
-- Permitir regresar al panel principal desde las pantallas secundarias.
-- No ocultar el objetivo actual de la misión.
-- Solicitar confirmación antes de eliminar objetos importantes o abandonar una misión, como mejora futura.
-- Validar las entradas y explicar cómo corregirlas cuando sean incorrectas.
-
-### 5.5. Retroalimentación
-
-Cada acción debe producir una respuesta clara. Por ejemplo:
-
-- Si el jugador intenta atravesar una pared, mostrar que el paso está bloqueado.
-- Si recoge un objeto, indicar su nombre y añadirlo al inventario.
-- Si pierde energía, mostrar cuánta energía perdió y el valor restante.
-- Si gana un combate, comunicar el resultado.
-- Si encuentra el núcleo, actualizar el objetivo.
-- Si completa la extracción, mostrar la recompensa obtenida.
-- Si ocurre una condición crítica, explicar por qué se interrumpe la sesión.
-
----
-
-## 6. Alcance y restricciones
-
-La evolución se realizará por etapas para conservar una base viable y evitar que el proyecto crezca más de lo que puede desarrollarse y probarse.
-
-### 6.1. Funcionalidades prioritarias
-
-| Prioridad | Funcionalidad | Justificación |
+| Elemento | Versión H3 | Versión actual |
 |---|---|---|
-| Alta | Mantener identificación y selección de las tres realidades | Ya existen en H3 y forman el inicio de la partida. |
-| Alta | Mejorar la presentación del panel y el mapa | Facilita comprender el estado y el objetivo. |
-| Alta | Conservar movimiento y límites del mapa | Es la base de la exploración actual. |
-| Alta | Mantener salud, energía, estabilidad y control de entropía | Son el núcleo del sistema de supervivencia. |
-| Alta | Mantener eventos, enemigos y combate por turnos | Dan riesgo y variedad a la exploración. |
-| Alta | Mejorar el inventario y los mensajes de uso | Permite administrar recursos con mayor claridad. |
-| Alta | Mostrar misión, estado y extracción | Hace más comprensible el progreso de la partida. |
+| Interfaz | Consola | Windows Forms |
+| Exploración | Matrices de caracteres | Escenarios 2D |
+| Movimiento | W, A, S y D | A, D y espacio |
+| Combate | Por turnos | Tiempo real |
+| Personaje | Cadete | Cadete |
+| Enemigos | Clases C# | Enemigos representados en 2D |
+| Misiones | Búsqueda del núcleo | Eliminar enemigos y alcanzar el final |
+| Inventario | Listas en memoria | Listas y persistencia SQL |
+| Guardado | Sin persistencia SQL | SQL Server |
+| Recursos gráficos | Caracteres y colores | Sprites y escenarios |
+| Sonido | Limitado | Recursos de audio |
 
-### 6.2. Funcionalidades opcionales o futuras
-
-- Incorporar varios exploradores seleccionables con atributos distintos.
-- Añadir misiones secundarias y más objetivos por realidad.
-- Guardar y cargar partidas.
-- Incorporar nuevos mapas y eventos.
-- Añadir progresión mediante experiencia y mejoras desbloqueables.
-- Incluir efectos de sonido y animaciones de texto.
-- Incorporar una interfaz gráfica en una etapa posterior, si el tiempo y los requisitos lo permiten.
-- Ampliar la comunicación con un servidor externo. El prototipo ya intenta conectarse a un servidor TCP y continúa en modo local si no está disponible; la experiencia principal no debe depender de esa conexión.
-
-### 6.3. Restricciones técnicas y de proyecto
-
-1. La propuesta debe partir del código H3 y conservar sus mecánicas principales.
-2. La implementación inicial continuará en C# y en la aplicación de consola .NET existente.
-3. Se mantendrá la organización orientada a objetos, aprovechando clases como `Personaje`, `Cadete`, `Enemigo`, `centinela`, `MapaRealidad` y `SistemaNexus`.
-4. Los mapas seguirán representándose inicialmente mediante matrices bidimensionales.
-5. La energía y la estabilidad deberán permanecer dentro del rango de 0 a 100 después de cualquier operación.
-6. Las nuevas funciones deberán poder probarse sin depender obligatoriamente de un servidor externo.
-7. Se priorizará que la partida principal sea estable antes de añadir contenido opcional.
-8. Los bocetos de este documento describen una propuesta de diseño; no implican que las pantallas ya estén programadas.
-
-### 6.4. Resultado esperado
-
-Al completar la primera etapa de evolución, NEXUS deberá ofrecer una partida de consola más organizada y fácil de entender, en la que el jugador pueda iniciar una expedición, explorar una realidad, gestionar sus recursos, enfrentar eventos, localizar el núcleo energético y completar la extracción. Las mejoras posteriores podrán ampliar la variedad de exploradores, misiones y mapas sin perder la identidad del proyecto original.
+Las clases y reglas originales constituyen la base conceptual de la evolución del videojuego.
 
 ---
 
-## Referencia al proyecto H3
+## 3. Ciclo principal del juego
 
-Este diseño toma como referencia el código actual de `Program.cs` y la descripción del proyecto en `README.md` del repositorio. Las funciones descritas como existentes corresponden al prototipo consultado; las identificadas como propuestas o futuras representan la evolución planificada y no deben confundirse con funcionalidades ya implementadas.
+El ciclo principal representa las acciones que realiza el jugador desde que inicia NEXUS hasta que completa una misión o abandona la partida.
+
+```mermaid
+flowchart TD
+    A[Iniciar NEXUS] --> B[Menu principal]
+    B --> C[Nueva partida]
+    B --> D[Cargar partida]
+    B --> E[Salir]
+    C --> F[Crear cadete]
+    F --> G[Ingresar al mundo 2D]
+    D --> H[Consultar partidas en SQL Server]
+    H --> G
+    G --> I[Explorar escenario]
+    I --> J[Combatir enemigos]
+    J --> K[Administrar recursos]
+    K --> L{Mision completada?}
+    L -->|No| M{Continuar jugando?}
+    M -->|Si| I
+    M -->|No| N[Guardar progreso si se desea]
+    L -->|Si| O[Obtener recompensa]
+    O --> N
+    N --> B
+```
+
+El jugador puede guardar la partida durante la exploración utilizando el botón correspondiente.
+
+La recuperación permite continuar desde el estado almacenado en SQL Server.
+
+---
+
+## 4. Mecánicas y reglas
+
+### 4.1. Creación del cadete
+
+La clase `Cadete` representa al personaje controlado por el jugador.
+
+Sus atributos principales son:
+
+| Atributo | Función |
+|---|---|
+| Nombre | Identificación del jugador |
+| Edad | Información del cadete |
+| Salud | Estado físico actual |
+| Salud máxima | Límite de salud |
+| Energía | Recurso utilizado durante el combate |
+| Estabilidad | Indicador del estado del personaje |
+| Experiencia | Progreso obtenido |
+| Inventario | Recursos disponibles |
+
+La clase Cadete hereda de la clase abstracta Personaje, permitiendo reutilizar atributos y comportamientos definidos en el proyecto original.
+
+### 4.2. Exploración del mundo
+
+La exploración actual se realiza mediante un escenario de plataformas en 2D.
+
+El jugador puede:
+
+- Moverse horizontalmente.
+- Saltar.
+- Realizar un doble salto.
+- Recorrer plataformas.
+- Enfrentarse a enemigos.
+- Avanzar hasta el final del escenario.
+
+El archivo `juego2d.cs` contiene la lógica principal relacionada con el movimiento, la gravedad, las plataformas, las colisiones y la representación gráfica.
+
+El escenario actual tiene un ancho lógico de 5000 unidades.
+
+El sistema registra el nombre y la semilla del mundo. La distribución inicial de enemigos incorpora elementos aleatorios.
+
+La recuperación de partidas utiliza las posiciones y estados de enemigos almacenados en SQL Server.
+
+La generación completamente procedural de todas las plataformas constituye una posible mejora futura.
+
+### 4.3. Controles
+
+| Tecla | Acción |
+|---|---|
+| A | Moverse hacia la izquierda |
+| D | Moverse hacia la derecha |
+| Espacio | Saltar |
+| Espacio durante el salto | Realizar doble salto |
+| J | Atacar |
+| R | Recargar energía |
+
+Además, la interfaz dispone de botones para guardar la partida y regresar al menú.
+
+### 4.4. Sistema de combate
+
+El combate se desarrolla en tiempo real.
+
+El jugador debe acercarse a los enemigos y utilizar la tecla J para atacar.
+
+Reglas principales:
+
+- Cada ataque requiere energía.
+- El ataque consume 5 puntos de energía.
+- Existe un intervalo entre ataques.
+- El daño depende de las condiciones del ataque.
+- Los enemigos pueden causar daño al cadete.
+- El jugador obtiene experiencia al derrotar enemigos.
+- Los enemigos derrotados pueden proporcionar células de energía.
+
+La clase `Enemigo2D` representa a los enemigos presentes en el escenario.
+
+La lógica del combate se encuentra principalmente en `juego2d.cs`.
+
+### 4.5. Salud, energía y estabilidad
+
+La salud representa la capacidad del cadete para sobrevivir a los ataques.
+
+La energía permite ejecutar acciones de combate y debe administrarse durante la exploración.
+
+La estabilidad representa un atributo heredado del sistema original de NEXUS.
+
+El prototipo H3 utilizaba un cálculo de entropía relacionado con la energía y la estabilidad. La ampliación de este sistema dentro del combate gráfico constituye una posible mejora futura.
+
+### 4.6. Inventario
+
+El inventario permite almacenar los recursos del cadete.
+
+Entre los objetos definidos en el proyecto se encuentran:
+
+- Célula de energía.
+- Escudo.
+
+La célula de energía permite recuperar energía mediante la tecla R.
+
+La recuperación incrementa la energía hasta un máximo de 100 puntos, siempre que exista una célula disponible.
+
+El inventario se almacena mediante listas de C# y se conserva al guardar la partida en SQL Server.
+
+La incorporación de una pantalla independiente para consultar y administrar todos los objetos constituye una mejora propuesta.
+
+### 4.7. Experiencia
+
+La experiencia representa el progreso del jugador.
+
+Actualmente se obtiene mediante:
+
+| Acción | Recompensa |
+|---|---|
+| Derrotar un enemigo | 50 XP |
+| Completar la misión principal | 100 XP |
+
+La experiencia se almacena en SQL Server y puede recuperarse al continuar una partida.
+
+La incorporación de niveles, habilidades desbloqueables y mejoras de atributos constituye una ampliación futura.
+
+---
+
+## 5. Sistema de misiones
+
+### 5.1. Misión principal: La anomalía perdida
+
+**Descripción:** el cadete debe explorar el mundo, eliminar a los enemigos presentes y alcanzar el final del escenario.
+
+**Objetivos:**
+
+1. Ingresar al mundo.
+2. Explorar las plataformas.
+3. Enfrentarse a los enemigos.
+4. Eliminar a todos los enemigos.
+5. Alcanzar el final del escenario.
+6. Obtener la recompensa correspondiente.
+
+### 5.2. Condiciones de finalización
+
+La misión se completa cuando:
+
+- Todos los enemigos han sido derrotados.
+- El jugador alcanza la zona final del escenario.
+- La misión todavía no se encuentra completada.
+
+Al cumplir estas condiciones, el sistema entrega 100 puntos de experiencia y muestra un mensaje de confirmación.
+
+El estado de la misión se conserva en SQL Server para evitar que una misión ya completada vuelva a entregar la misma recompensa al recuperar la partida.
+
+### 5.3. Estados de misión
+
+| Estado | Descripción |
+|---|---|
+| En progreso | El jugador todavía no ha completado los objetivos |
+| Completada | El jugador ha cumplido las condiciones de la misión |
+
+### 5.4. Flujo de la misión
+
+```mermaid
+flowchart TD
+    A[Iniciar exploracion] --> B[Buscar enemigos]
+    B --> C[Combatir]
+    C --> D{Todos derrotados?}
+    D -->|No| B
+    D -->|Si| E[Avanzar al final]
+    E --> F{Alcanzo la zona final?}
+    F -->|No| E
+    F -->|Si| G[Completar mision]
+    G --> H[Entregar 100 XP]
+    H --> I[Guardar progreso si se desea]
+```
+
+### 5.5. Evidencia de misión completada
+
+![Misión completada](evidencias/mision-completada.png)
+
+---
+
+## 6. Diseño de pantallas y wireframes
+
+Los siguientes bocetos representan la organización visual de las interfaces de NEXUS.
+
+Se diferencia entre las pantallas implementadas y las propuestas para futuras versiones.
+
+### 6.1. Pantalla 1: Menú principal
+
+**Estado:** implementada.
+
+**Objetivo:** permitir que el jugador acceda a las funciones principales del videojuego.
+
+**Wireframe:**
+
+```text
++--------------------------------------------+
+|                                            |
+|               N E X U S                    |
+|             TRAINING SYSTEM                |
+|                                            |
+|           [ NUEVA PARTIDA ]                |
+|                                            |
+|           [ CARGAR PARTIDA ]               |
+|                                            |
+|           [    AJUSTES    ]                |
+|                                            |
+|           [     SALIR     ]                |
+|                                            |
++--------------------------------------------+
+```
+
+**Elementos principales:**
+
+- Título del videojuego.
+- Botón de nueva partida.
+- Botón de carga.
+- Opción de ajustes.
+- Botón de salida.
+- Recursos gráficos y sonoros.
+
+La ampliación de las funciones de ajustes puede realizarse en futuras versiones.
+
+**Archivo relacionado:** `menu_principal.cs`.
+
+**Evidencia real:**
+
+![Menú principal](evidencias/menu_nexus.png)
+
+---
+
+### 6.2. Pantalla 2: Exploración y mapa
+
+**Estado:** implementada.
+
+**Objetivo:** permitir que el jugador explore el mundo, combata y consulte sus estadísticas.
+
+**Wireframe:**
+
+```text
++------------------------------------------------------+
+| NEXUS                    [GUARDAR] [VOLVER AL MENU]  |
+|                                                      |
+| Salud:       100/100                                 |
+| Energia:      80/100                                 |
+| Estabilidad:  60/100                                 |
+| Experiencia:  150                                    |
+|                                                      |
+| Mision: La anomalia perdida                          |
+| Objetivo: Derrotar a todos los enemigos              |
+|                                                      |
+|                 [ENEMIGO]                            |
+|              ================                        |
+|                                                      |
+|    [CADETE]                    [ENEMIGO]             |
+|  ===========                 ===========             |
+|                                                      |
+|======================================================|
+| A/D: Moverse  ESPACIO: Saltar  J: Atacar  R: Energia  |
++------------------------------------------------------+
+```
+
+**Elementos principales:**
+
+- Indicadores del cadete.
+- Escenario de plataformas.
+- Personaje.
+- Enemigos.
+- Información de misión.
+- Botón de guardado.
+- Botón de retorno.
+
+**Archivo relacionado:** `juego2d.cs`.
+
+**Evidencia real:**
+
+![Exploración 2D](evidencias/03-exploracion-2d.png)
+
+---
+
+### 6.3. Pantalla 3: Panel de misiones
+
+**Estado:** propuesta de ampliación.
+
+La versión actual muestra información de la misión dentro del escenario.
+
+Se propone incorporar un panel independiente para organizar los objetivos de manera más detallada.
+
+**Wireframe:**
+
+```text
++--------------------------------------------+
+|              MISIONES NEXUS                |
++--------------------------------------------+
+| Mision principal                           |
+|                                            |
+| LA ANOMALIA PERDIDA                        |
+|                                            |
+| Estado: En progreso                        |
+|                                            |
+| [X] Ingresar al mundo                      |
+| [ ] Eliminar a todos los enemigos          |
+| [ ] Alcanzar el final del escenario        |
+|                                            |
+| Recompensa: 100 XP                         |
+|                                            |
+|              [ CONTINUAR ]                 |
+|              [  VOLVER   ]                 |
++--------------------------------------------+
+```
+
+**Elementos propuestos:**
+
+- Nombre de misión.
+- Descripción.
+- Estado.
+- Objetivos.
+- Progreso.
+- Recompensa.
+
+La lógica de misión y su persistencia ya existen. El panel independiente todavía constituye una propuesta.
+
+**Archivos relacionados:**
+
+- `juego2d.cs`.
+- `partidasSQL.cs`.
+- `sql/nexus.sql`.
+
+---
+
+### 6.4. Pantalla 4: Explorador e inventario
+
+**Estado:** propuesta de ampliación.
+
+Actualmente, los atributos del cadete se muestran durante la exploración y el inventario se administra mediante la lógica de C#.
+
+Se propone una pantalla independiente para consultar los recursos disponibles.
+
+**Wireframe:**
+
+```text
++--------------------------------------------+
+|           EXPLORADOR E INVENTARIO          |
++--------------------------------------------+
+| Nombre: Cadete NEXUS                       |
+| Edad: 18                                   |
+|                                            |
+| Salud:       100/100                       |
+| Energia:      80/100                       |
+| Estabilidad:  60/100                       |
+| Experiencia:  150 XP                       |
++--------------------------------------------+
+| INVENTARIO                                 |
+|                                            |
+| Objeto                  Cantidad           |
+| Celula de energia           3              |
+| Escudo                      1              |
+|                                            |
+| [ UTILIZAR OBJETO ]                        |
+|                                            |
+| [ VOLVER AL JUEGO ]                        |
++--------------------------------------------+
+```
+
+Los valores mostrados son ejemplos de diseño y no corresponden a una partida específica.
+
+**Elementos propuestos:**
+
+- Datos del cadete.
+- Estadísticas.
+- Listado de objetos.
+- Cantidades.
+- Descripción de recursos.
+- Acciones de uso.
+
+**Archivos relacionados:**
+
+- `Program.cs`.
+- `juego2d.cs`.
+- `partidasSQL.cs`.
+
+**Evidencia de indicadores actuales:**
+
+![Indicadores del cadete](evidencias/indicadores-cadete.png)
+
+---
+
+### 6.5. Pantalla 5: Carga de partidas
+
+**Estado:** implementada.
+
+**Objetivo:** permitir al jugador seleccionar y recuperar una partida almacenada.
+
+**Wireframe:**
+
+```text
++----------------------------------------------------+
+|              PARTIDAS GUARDADAS                    |
++----------------------------------------------------+
+| ID | Jugador | Mundo | Salud | XP  | Fecha          |
+|----+---------+-------+-------+-----+----------------|
+| 14 | Cadete  | Nexus | 100   | 800 | 24/11/2026     |
+| 13 | Cadete  | Nexus |  80   | 650 | 24/11/2026     |
+| 12 | Cadete  | Nexus |  50   | 150 | 24/11/2026     |
+|                                                    |
+| Seleccionar una partida mediante doble clic.       |
++----------------------------------------------------+
+```
+
+Los registros del boceto son ilustrativos.
+
+La interfaz utiliza un control DataGridView para presentar la información obtenida de SQL Server.
+
+**Archivos relacionados:**
+
+- `cargarpartidas.cs`.
+- `partidasSQL.cs`.
+
+**Evidencia real:**
+
+![Carga de partidas](evidencias/cargar-partida.png)
+
+---
+
+### 6.6. Pantalla adicional: Creación del cadete
+
+**Estado:** implementada.
+
+Permite ingresar los datos necesarios para comenzar una nueva partida y establecer el mundo de exploración.
+
+**Archivo relacionado:** `inicio_cadete.cs`.
+
+**Evidencia real:**
+
+![Creación del personaje](evidencias/creacion_personaje.png)
+
+---
+
+## 7. Navegación entre pantallas
+
+```mermaid
+flowchart TD
+    A[Menu principal] --> B[Nueva partida]
+    A --> C[Cargar partida]
+    A --> D[Ajustes]
+    A --> E[Salir]
+    B --> F[Creacion del cadete]
+    F --> G[Exploracion 2D]
+    C --> H[Lista de partidas]
+    H --> G
+    G --> I[Combate]
+    I --> G
+    G --> J[Guardar partida]
+    J --> G
+    G --> K[Volver al menu]
+    K --> A
+    G -.-> L[Panel de misiones propuesto]
+    G -.-> M[Inventario independiente propuesto]
+```
+
+Las conexiones discontinuas representan ampliaciones propuestas.
+
+---
+
+## 8. Experiencia de usuario
+
+### 8.1. Identidad visual
+
+NEXUS utiliza una ambientación de ciencia ficción con elementos tecnológicos y futuristas.
+
+La identidad visual busca mantener coherencia entre:
+
+- Menú principal.
+- Escenarios.
+- Personajes.
+- Enemigos.
+- Indicadores.
+- Botones.
+- Recursos sonoros.
+
+### 8.2. Legibilidad
+
+La interfaz debe permitir que el jugador identifique fácilmente:
+
+- Su salud.
+- Su energía.
+- Su estabilidad.
+- Su experiencia.
+- El objetivo actual.
+- Los controles disponibles.
+
+Los textos y elementos gráficos deben diferenciarse adecuadamente del fondo.
+
+### 8.3. Jerarquía visual
+
+La información se organiza según su importancia:
+
+1. Estado de supervivencia del cadete.
+2. Objetivo de misión.
+3. Enemigos y obstáculos.
+4. Recursos disponibles.
+5. Acciones de navegación.
+
+### 8.4. Facilidad de navegación
+
+El jugador debe poder:
+
+- Iniciar una partida desde el menú.
+- Recuperar una partida almacenada.
+- Identificar los controles.
+- Guardar el progreso.
+- Regresar al menú.
+
+### 8.5. Retroalimentación
+
+El videojuego debe informar al jugador sobre los resultados de sus acciones.
+
+Actualmente se dispone de:
+
+- Indicadores de estadísticas.
+- Cambios en la salud de personajes.
+- Representación de ataques.
+- Progreso de misión.
+- Mensajes de misión completada.
+- Confirmaciones de guardado.
+- Mensajes de error relacionados con la persistencia.
+
+### 8.6. Mejoras de accesibilidad propuestas
+
+- Configuración de controles.
+- Ajustes de volumen.
+- Mejora del contraste.
+- Indicadores adicionales.
+- Instrucciones iniciales.
+- Mensajes más descriptivos.
+
+Estas características se plantean como ampliaciones futuras.
+
+---
+
+## 9. Persistencia del progreso
+
+### 9.1. Guardado
+
+El jugador puede guardar su progreso mediante el botón Guardar partida.
+
+El sistema registra información como:
+
+- Nombre y edad.
+- Salud.
+- Energía.
+- Estabilidad.
+- Experiencia.
+- Inventario.
+- Posición del jugador.
+- Nombre y semilla del mundo.
+- Posición y salud de enemigos.
+- Estado de la misión.
+- Fecha de guardado.
+
+Cada operación de guardado genera un registro de partida.
+
+La implementación utiliza transacciones SQL para reducir el riesgo de guardar información parcialmente.
+
+### 9.2. Recuperación
+
+Desde el menú principal, el jugador puede acceder a la lista de partidas almacenadas.
+
+Al seleccionar una partida, el sistema consulta SQL Server y reconstruye los atributos del cadete, su inventario, su posición, los enemigos y el estado de misión.
+
+### 9.3. Modelo de almacenamiento
+
+La base de datos NEXUS utiliza cuatro tablas:
+
+| Tabla | Función |
+|---|---|
+| Partidas | Progreso general del jugador |
+| Inventario | Objetos almacenados |
+| Enemigos | Estado y posición de enemigos |
+| Misiones | Estado de las misiones |
+
+Para obtener mayor información:
+
+[Consultar modelo de datos](modelo-de-datos-propuesto.md)
+
+### 9.4. Evidencias
+
+![Guardado de partida](evidencias/guardar-partida.png.png)
+
+![Partida recuperada](evidencias/-partida-recuperada.png)
+
+---
+
+## 10. Alcance del videojuego
+
+### 10.1. Funcionalidades implementadas
+
+| Funcionalidad | Estado |
+|---|---|
+| Menú principal | Implementado |
+| Creación del cadete | Implementado |
+| Exploración 2D | Implementado |
+| Movimiento horizontal | Implementado |
+| Salto y doble salto | Implementado |
+| Combate en tiempo real | Implementado |
+| Enemigos | Implementado |
+| Indicadores del personaje | Implementado |
+| Experiencia | Implementado |
+| Inventario | Implementado en la lógica |
+| Recarga de energía | Implementado |
+| Misión principal | Implementado |
+| Guardado SQL | Implementado |
+| Recuperación SQL | Implementado |
+| Consulta mediante DataGridView | Implementado |
+
+### 10.2. Funcionalidades futuras
+
+| Funcionalidad | Prioridad |
+|---|---|
+| Panel independiente de inventario | Alta |
+| Panel independiente de misiones | Alta |
+| Separación de responsabilidades del código | Alta |
+| Configuración de controles | Media |
+| Nuevos tipos de enemigos | Media |
+| Nuevas misiones | Media |
+| Generación procedural completa de escenarios | Media |
+| Sistema de niveles | Media |
+| Habilidades desbloqueables | Media |
+| Jefes finales | Baja |
+| Modo multijugador | Baja |
+
+Las funcionalidades futuras no deben considerarse implementadas hasta que exista código y evidencia de funcionamiento.
+
+### 10.3. Restricciones
+
+- El proyecto utiliza C#.
+- La plataforma actual es .NET 8 para Windows.
+- La interfaz gráfica utiliza Windows Forms.
+- La persistencia requiere SQL Server.
+- El desarrollo corresponde a un proyecto académico individual.
+- Se prioriza la estabilidad antes de ampliar el alcance.
+- Las mejoras deben mantener relación con el código existente.
+
+---
+
+## 11. Tecnologías relacionadas con el diseño
+
+| Tecnología | Aplicación |
+|---|---|
+| C# | Lógica y comportamiento |
+| .NET 8 | Plataforma de desarrollo |
+| Windows Forms | Interfaz gráfica |
+| Microsoft.Data.SqlClient | Acceso a datos |
+| SQL Server Express | Persistencia |
+| JSON | Serialización de información |
+| Git | Control de versiones |
+| GitHub | Repositorio y documentación |
+
+Las decisiones tecnológicas se justifican en:
+
+[Consultar análisis técnico](analisis-tecnico.md)
+
+---
+
+## 12. Correspondencia con el código fuente
+
+| Archivo | Relación con el diseño |
+|---|---|
+| Program.cs | Clases originales y atributos del cadete |
+| menu_principal.cs | Navegación principal |
+| inicio_cadete.cs | Creación del personaje |
+| juego2d.cs | Exploración, movimiento, combate y misión |
+| enemigo2d.cs | Representación de enemigos |
+| cargarpartidas.cs | Selección y recuperación de partidas |
+| partidasSQL.cs | Persistencia |
+| sql/nexus.sql | Modelo relacional |
+| sprites/ | Recursos gráficos |
+| sounds/ | Recursos de audio |
+
+---
+
+## 13. Evidencias del videojuego
+
+### 13.1. Combate
+
+![Combate en tiempo real](evidencias/combate.png.png)
+
+### 13.2. Base de datos
+
+![Registros almacenados en SQL Server](evidencias/base-de-datos.png)
+
+### 13.3. Modelo relacional
+
+![Diagrama del modelo de datos](evidencias/diagrama-modelo-datos.png)
+
+Las capturas corresponden a evidencias publicadas del desarrollo del proyecto.
+
+[Consultar todas las evidencias](evidencias/)
+
+---
+
+## 14. Documentación relacionada
+
+- [README principal](../README.md)
+- [Arquitectura actual](arquitectura-actual.md)
+- [Arquitectura propuesta](arquitectura-propuesta.md)
+- [Modelo de datos propuesto](modelo-de-datos-propuesto.md)
+- [Análisis técnico](analisis-tecnico.md)
+- [Código principal](../Program.cs)
+- [Juego 2D](../juego2d.cs)
+- [Acceso a datos](../partidasSQL.cs)
+- [Script SQL](../sql/nexus.sql)
+
+---
+
+## 15. Conclusión
+
+NEXUS evolucionó desde una aplicación de consola desarrollada durante H3 hacia un videojuego gráfico de exploración, acción y supervivencia en 2D.
+
+El diseño actual conserva elementos fundamentales del proyecto original, como el cadete, los enemigos, los recursos, la experiencia y las misiones.
+
+La incorporación de Windows Forms permitió mejorar la interacción visual, mientras que SQL Server permitió conservar y recuperar el progreso del jugador.
+
+Los wireframes presentados describen tanto las interfaces existentes como las ampliaciones propuestas, diferenciando claramente el estado de cada funcionalidad.
+
+La evolución futura deberá priorizar la mantenibilidad, la experiencia del usuario, la estabilidad y la incorporación progresiva de nuevas mecánicas.
